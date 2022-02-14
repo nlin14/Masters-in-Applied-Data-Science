@@ -1,0 +1,152 @@
+# Intro to Data Science - HW 6
+##### Copyright Jeffrey Stanton, Jeffrey Saltz, and Jasmina Tacheva
+
+
+```{r}
+# Enter your name here: Nora Lin
+```
+
+
+### Attribution statement: (choose only one and delete the rest)
+
+
+```{r}
+# 1. I did this homework by myself, with help from the book and the professor.
+```
+
+Last assignment we explored **data visualization** in R using the **ggplot2** package. This homework continues to use ggplot, but this time, with maps.  In addition, we will merge datasets using the built-in **merge( )** function, which provides a similar capability to a **JOIN in SQL** (don't worry if you do not know SQL). Many analytical strategies require joining data from different sources based on a **“key”** – a field that two datasets have in common. 
+
+## Step 1: Load the population data
+
+A.	Read the following JSON file, https://intro-datascience.s3.us-east-2.amazonaws.com/cities.json and store it in a variable called **pop**.
+
+Examine the resulting pop dataframe and add comments explaining what each column contains.
+
+```{r}
+library(jsonlite)
+dataset <- url("https://intro-datascience.s3.us-east-2.amazonaws.com/cities.json")
+readlines <- jsonlite::fromJSON(dataset)
+pop<- readlines
+```
+
+B.	Calculate the **average population** in the dataframe. Why is using mean() directly not working? Find a way to correct the data type of this variable so you can calculate the average (and then calculate the average)
+
+Hint: use **str(pop)** or **glimpse(pop)** to help understand the dataframe
+
+
+```{r}
+str(pop)
+pop$population <- as.numeric(pop$population)
+mean(pop$population)
+#The mean() is not directly working because the structure of the column population is a character. The average population is 131132.4
+```
+
+C.	What is the population of the smallest city in the dataframe? Which state is it in?
+```{r}
+pop[pop$population==min(pop$population),]
+#The population of the smallest city is Panama City with a population fo 36877
+```
+
+## Step 2: Merge the population data with the state name data
+
+D)	Read in the state name .csv file from the URL below into a dataframe named **abbr** (for "abbreviation") – make sure to use the read_csv() function from the tidyverse package: <br>
+https://intro-datascience.s3.us-east-2.amazonaws.com/statesInfo.csv
+
+```{r}
+library(tidyverse)
+abbr <- read_csv("https://intro-datascience.s3.us-east-2.amazonaws.com/statesInfo.csv")
+
+```
+
+E)	To successfully merge the dataframe **pop** with the **abbr** dataframe, we need to identify a **column they have in common** which will serve as the **“key”** to merge on. One column both dataframes have is the **state column**. The only problem is the slight column name discrepancy – in **pop**, the column is called **“state”** and in **abbr** – **“State.”** These names need to be reconciled for the merge() function to work. Find a way to rename **abbr’s “State”** to **match** the **state column in pop**.    
+
+
+```{r}
+#str(abbr)
+colnames(abbr)[1] <- "state"
+```
+
+F)	Merge the two dataframes (using the **‘state’ column** from both dataframes), storing the resulting dataframe in **dfNew**.
+
+
+```{r}
+dfNew <- merge(pop,abbr,by.x="state",by.y="state")
+dfNew
+```
+
+G)	Review the structure of **dfNew** and explain the columns (aka attributes) in that dataframe.
+
+
+```{r}
+str(dfNew)
+```
+
+## Step 3: Visualize the data
+
+H)	Plot points (on top of a map of the US) for **each city**. Have the **color** represent the **population**.
+
+
+```{r}
+library(ggplot2)
+library(maps)
+```
+
+```{r}
+ggplot()+
+  geom_map(data=us,map=us,aes(map_id = region, x=long, y=lat),color="black",fill="white")+
+  geom_point(data=dfNew,aes(longitude,latitude,group=city,color=population))
+```
+
+I)	Add a block comment that criticizes the resulting map. It’s not very good.
+
+
+```{r}
+#This map isn't great.  It looks squished. 
+```
+
+## Step 4: Group by State
+
+
+J)	Use group_by and summarise to make a dataframe of state-by-state population. Store the result in **dfSimple**.
+
+
+```{r}
+dfSimple <-dfNew %>%
+  group_by(state)%>%
+  summarise(total_population= sum(population))
+dfSimple
+```
+
+K)	Name the most and least populous states in **dfSimple** and show the code you used to determine them.
+
+
+```{r}
+#Least populous states: 
+dfSimple[dfSimple$total_population==min(dfSimple$total_population)]
+
+#The least populous states are alaska, district  of columbia, hawaii, maine and vermont.
+```
+```{r}
+#most populous states:
+dfSimple[dfSimple$population==max(dfSimple$population),]
+# the most populous state is california
+```
+
+## Step 5: Create a map of the U.S.,  with the color of the state representing the state population
+
+L) Make sure to expand the limits correctly and that you have used **coord_map** appropriately.
+
+```{r}
+dfNew2 <- merge(dfNew, dfSimple, by.x= "state", by.y="state")
+dfNew2
+```
+
+```{r}
+ggplot(dfNew2)+
+  aes(longitude,latitude,group=state)+
+  geom_polygon(aes(fill=total_population))
+```
+
+
+
+
