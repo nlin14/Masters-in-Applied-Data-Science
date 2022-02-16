@@ -1,0 +1,178 @@
+# Intro to Data Science - HW 5
+##### Copyright Jeffrey Stanton, Jeffrey Saltz, and Jasmina Tacheva
+
+```{r}
+# Enter your name here: Nora Lin
+```
+
+
+### Attribution statement: (choose only one and delete the rest)
+
+
+```{r}
+# 1. I did this homework by myself, with help from the book and the professor.
+```
+
+**This module:** **Data visualization** is important because many people can make sense of data more easily when it is presented in graphic form. As a data scientist, you will have to present complex data to decision makers in a form that makes the data interpretable for them. From your experience with Excel and other tools, you know that there are a variety of **common data visualizations** (e.g., pie charts). How many of them can you name? <br>
+
+The most powerful tool for data visualization in R is called **ggplot**. Written by computer/data scientist **Hadley Wickham**, this **“graphics grammar”** tool builds visualizations in layers. This method provides immense flexibility, but takes a bit of practice to master.
+
+
+## Step 1: Make a copy of the data
+
+A.	Read the **who** dataset from this URL: https://intro-datascience.s3.us-east-2.amazonaws.com/who.csv <br>
+into a new dataframe called **tb**. 
+
+Your new dataframe, tb, contains a so-called **multivariate time series**: a sequence of measurements on 23 Tuberculosis-related (TB) variables captured repeatedly over time (1980-2013). Familiarize yourself with the nature of the 23 variables by consulting the dataset’s codebook which can be found here: https://intro-datascience.s3.us-east-2.amazonaws.com/TB_data_dictionary_2021-02-06.csv.
+
+
+```{r}
+library(tidyverse)
+#Creating a new dataframe called "tb":
+tb <- read_csv("https://intro-datascience.s3.us-east-2.amazonaws.com/who.csv")
+tb
+```
+
+B.	How often were these measurements taken (in other words, at what frequency were the variables measured)? Put your answer in a comment. 
+
+```{r}
+summary(tb$year)
+frequency(tb$year)
+#the frequency was measured in 1 year increments starting from 1980 to 2008.
+```
+
+## Step 2: Clean-up the NAs and create a subset
+
+A.	Let's clean up the iso2 attribute in **tb** 
+
+Hint: use *is.na()* -- well use *! is.na()* 
+```{r}
+sum(is.na(tb$iso2))
+```
+
+B. Create a subset of **tb** containing **only the records for Canada ("CA" in the iso2 variable)**. Save it in a new dataframe called **tbCan**. Make sure this new df has **29 observations and 23 variables**.
+
+
+```{r}
+library(dplyr)
+
+tbCan <- tb%>%
+  filter(iso2 == "CA")
+tbCan
+```
+
+C. A simple method for dealing with small amounts of **missing data** in a numeric variable is to **substitute the mean of the variable in place of each missing datum**. <br>
+This expression locates (and reports to the console) all the missing data elements in the variable measuring the **number of positive pulmonary smear tests for male children 0-4 years old** (there are 26 data points missing)
+
+
+```{r}
+tbCan$new_sp_m04[is.na(tbCan$new_sp_m04)]
+```
+
+    
+D.	Write a comment describing how that statement works.
+
+```{r}
+# the "is.na(tbCan$new_sp_m04)" means that it is pull all the NA in the column "new_sp_m04"of the dataframe tbCan. Then it is subsetting the column "new_sp_m04" by that conditino.
+```
+
+E.	Write 4 more statements to check if there is missing data for the number of positive pulmonary smear tests for: **male and female** children 0-14 years old (**new_sp_m014** and **new_sp_f014**), and **male and female citizens 65 years of age and older**, respectively. What does empty output suggest about the number of missing observations?
+
+
+```{r}
+#male children 0-14 years old:
+tbCan$new_sp_m014[is.na(tbCan$new_sp_m014)]
+#female children 0-14 years old:
+tbCan$new_sp_f014[is.na(tbCan$new_sp_f014)]
+#female citizens 65 years and older:
+tbCan$new_sp_f65[is.na(tbCan$new_sp_f65)]
+#male citizens 65 years and older:
+tbCan$new_sp_m65[is.na(tbCan$new_sp_m65)]
+
+#The emptty output suggest that the there are no missing observations for these four categories.
+```
+
+There is an R package called **imputeTS** specifically designed to repair missing values in time series data. We will use this instead of mean substitution.  <br>
+The **na_interpolation()** function in this package takes advantage of a unique characteristic of time series data: **neighboring points in time can be used to “guess” about a missing value in between**.
+
+F.	Install the **imputeTS** package (if needed) and use **na_interpolation( )** on the variable from part C. Don’t forget that you need to save the results back to the **tbCan** dataframe. Also update any attribute discussed in part E (if needed).
+
+
+```{r}
+library(imputeTS)
+tbCan$new_sp_m04 <-na_interpolation(tbCan$new_sp_m04)
+```
+
+G.	Rerun the code from C and E above to check that all missing data have been fixed. 
+
+
+```{r}
+tbCan$new_sp_m04[is.na(tbCan$new_sp_m04)]
+```
+
+## Step 3: Use ggplot to explore the distribution of each variable
+**Don’t forget to install and library the ggplot2 package.** Then: <br>
+H.	Create a histogram for **new_sp_m014**. Be sure to add a title and briefly describe what the histogram means in a comment.
+
+```{r}
+library(ggplot2)
+tbCan %>% ggplot() +geom_histogram(aes(x=new_sp_m014),fill='blue') + ggtitle('Histogram of New Pulmonary Smear Tests for Males age 0-14')
+```
+
+I.	Create histograms (using ggplot) of each of the other three variables from E with ggplot( ). <br>
+Which parameter do you need to adjust to make the other histograms look right?
+
+
+```{r}
+tbCan %>% ggplot() +geom_histogram(aes(x=new_sp_f014),fill='pink') + ggtitle('Histogram of New Pulmonary Smear Tests for Females age 0-14')
+
+tbCan %>% ggplot() +geom_histogram(aes(x=new_sp_m65),fill='dark blue') + ggtitle('Histogram of New Pulmonary Smear Tests for Males age 65 and older')
+
+tbCan %>% ggplot() +geom_histogram(aes(x=new_sp_f65),fill='red') + ggtitle('Histogram of New Pulmonary Smear Tests for Females age 65 and older')
+
+#We need to change the binwidth too make the histogram look right.
+```
+
+## Step 4: Explore how the data changes over time
+J.	These data were collected in a period of several decades (1980-2013). You can thus observe changes over time with the help of a line chart. Create a **line chart**, with **year** on the X-axis and **new_sp_m014** on the Y-axis.
+
+
+```{r}
+tbCan %>% ggplot() +geom_line(aes(x=year, y=new_sp_m014), color = 'blue') + ggtitle('Number of New Pulmonary Smear Tests for Males age 0-14 between 1980-2008')
+```
+
+K.	Next, create similar graphs for each of the other three variables. Change the **color** of the line plots (any color you want).
+
+
+```{r}
+tbCan %>% ggplot() +geom_line(aes(x=year, y=new_sp_f014), color = 'green') + ggtitle('Number of New Pulmonary Smear Tests for Females age 0-14 between 1980-2008')
+
+tbCan %>% ggplot() +geom_line(aes(x=year, y=new_sp_m65), color = 'purple') + ggtitle('Number of New Pulmonary Smear Tests for Males age 65 and older between 1980-2008')
+
+tbCan %>% ggplot() +geom_line(aes(x=year, y=new_sp_f65), color = 'brown') + ggtitle('Number of New Pulmonary Smear Tests for Females 65 and older between 1980-2008')
+```
+
+L.	Using vector math, create a new variable by combining the numbers from **new_sp_m014** and **new_sp_f014**. Save the resulting vector as a new variable in the **tbCan** df called **new_sp_combined014**. This new variable represents the number of positive pulmonary smear tests for male AND female children between the ages of 0 and 14 years of age. Do the same for SP **tests among citizens 65 years of age and older** and save the resulting vector in the tbCan variable called **new_sp_combined65**.
+
+```{r}
+tbCan$new_sp_combined014 <- tbCan$new_sp_m014 + tbCan$new_sp_f014
+head(tbCan$new_sp_combined014)
+
+tbCan$new_sp_combined65 <- tbCan$new_sp_m65 + tbCan$new_sp_f65
+head(tbCan$new_sp_combined65)
+```
+
+M.	Finally, create a **scatter plot**, showing **new_sp_combined014** on the x axis, **new_sp_combined65** on the y axis, and having the **color and size** of the point represent **year**.
+
+
+```{r}
+tbCan %>%
+  ggplot() + geom_point(aes(x=new_sp_combined014, y=new_sp_combined65, color= year,size= year))
+  
+```
+
+N.	Interpret this visualization – what insight does it provide?
+
+```{r}
+#The bigger the size, the larger the year. Shows that we have some clustering.
+```
